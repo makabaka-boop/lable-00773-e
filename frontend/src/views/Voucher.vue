@@ -352,10 +352,10 @@ const loadData = async () => {
   tableLoading.value = true
   try {
     const res = await voucherApi.page({ ...filters.value, page: currentPage.value, size: pageSize.value })
-    vouchers.value = res.data.data?.list || []
-    total.value = res.data.data?.total || 0
+    vouchers.value = res.data?.list || []
+    total.value = res.data?.total || 0
   } catch (e) {
-    ElMessage.error('加载数据失败')
+    console.error('加载数据失败', e)
   } finally {
     tableLoading.value = false
   }
@@ -385,7 +385,7 @@ const handleSizeChange = (size) => {
 const loadAccounts = async () => {
   try {
     const res = await accountApi.listEnabled()
-    accounts.value = res.data.data || []
+    accounts.value = res.data || []
   } catch (e) {
     console.error('加载科目失败', e)
   }
@@ -413,14 +413,14 @@ const handleAdd = () => {
 const handleView = async (row) => {
   viewMode.value = true
   const res = await voucherApi.getById(row.id)
-  form.value = res.data.data
+  form.value = res.data
   dialogVisible.value = true
 }
 
 const handleEdit = async (row) => {
   viewMode.value = false
   const res = await voucherApi.getById(row.id)
-  form.value = res.data.data
+  form.value = res.data
   dialogVisible.value = true
 }
 
@@ -434,14 +434,12 @@ const handleSave = async () => {
   
   saving.value = true
   try {
-    const res = await voucherApi.save(form.value)
-    if (res.data.code === 200) {
-      ElMessage.success('保存成功')
-      dialogVisible.value = false
-      loadData()
-    } else {
-      ElMessage.error(res.data.message)
-    }
+    await voucherApi.save(form.value)
+    ElMessage.success('保存成功')
+    dialogVisible.value = false
+    loadData()
+  } catch (e) {
+    console.error('保存失败', e)
   } finally {
     saving.value = false
   }
@@ -454,30 +452,30 @@ const handlePost = async (row) => {
       confirmButtonText: '确认过账',
       cancelButtonText: '取消'
     })
-    const res = await voucherApi.post(row.id, value)
-    if (res.data.code === 200) {
-      ElMessage.success('过账成功')
-      loadData()
-    } else {
-      ElMessage.error(res.data.message)
-    }
+    await voucherApi.post(row.id, value)
+    ElMessage.success('过账成功')
+    loadData()
   } catch (e) {
-    // 用户取消
+    if (e !== 'cancel') {
+      console.error('过账失败', e)
+    }
   }
 }
 
 const handleVoid = async (row) => {
-  await ElMessageBox.confirm('作废后凭证将无法恢复，确定要作废吗？', '作废确认', { 
-    type: 'warning',
-    confirmButtonText: '确认作废',
-    cancelButtonText: '取消'
-  })
-  const res = await voucherApi.void(row.id)
-  if (res.data.code === 200) {
+  try {
+    await ElMessageBox.confirm('作废后凭证将无法恢复，确定要作废吗？', '作废确认', { 
+      type: 'warning',
+      confirmButtonText: '确认作废',
+      cancelButtonText: '取消'
+    })
+    await voucherApi.void(row.id)
     ElMessage.success('作废成功')
     loadData()
-  } else {
-    ElMessage.error(res.data.message)
+  } catch (e) {
+    if (e !== 'cancel') {
+      console.error('作废失败', e)
+    }
   }
 }
 

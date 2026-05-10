@@ -286,17 +286,17 @@ const handleQuery = async () => {
       }
       // 明细账不分页
       const res = await ledgerApi.detail(filters.value.accountCode, filters.value.period)
-      const data = res.data.data
+      const data = res.data
       detailData.value = data.entries || []
       openingBalance.value = (data.balance?.openingDebit || 0) - (data.balance?.openingCredit || 0)
     } else {
       // 科目余额表也不分页
       const res = await ledgerApi.balance(filters.value.period)
-      balanceData.value = res.data.data || []
+      balanceData.value = res.data || []
     }
     ElMessage.success('查询完成')
   } catch (e) {
-    ElMessage.error('查询失败')
+    console.error('查询失败', e)
   } finally {
     queryLoading.value = false
   }
@@ -305,7 +305,7 @@ const handleQuery = async () => {
 const loadAccounts = async () => {
   try {
     const res = await accountApi.listEnabled()
-    accounts.value = res.data.data || []
+    accounts.value = res.data || []
   } catch (e) {
     console.error('加载科目失败', e)
   }

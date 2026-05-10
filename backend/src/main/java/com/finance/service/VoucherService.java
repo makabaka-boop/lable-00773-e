@@ -1,9 +1,11 @@
 package com.finance.service;
 
+import com.finance.common.PageResult;
 import com.finance.entity.Account;
 import com.finance.entity.AccountBalance;
 import com.finance.entity.Voucher;
 import com.finance.entity.VoucherEntry;
+import com.finance.exception.BusinessException;
 import com.finance.mapper.AccountBalanceMapper;
 import com.finance.mapper.AccountMapper;
 import com.finance.mapper.VoucherMapper;
@@ -13,9 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -34,19 +34,14 @@ public class VoucherService {
         return vouchers;
     }
     
-    public Map<String, Object> findByConditionPage(String period, String status, String voucherNo, int page, int size) {
+    public PageResult<Voucher> findByConditionPage(String period, String status, String voucherNo, int page, int size) {
         int offset = (page - 1) * size;
         List<Voucher> vouchers = voucherMapper.findByConditionPage(period, status, voucherNo, offset, size);
         for (Voucher v : vouchers) {
             v.setEntries(entryMapper.findByVoucherId(v.getId()));
         }
         int total = voucherMapper.countByCondition(period, status, voucherNo);
-        Map<String, Object> result = new HashMap<>();
-        result.put("list", vouchers);
-        result.put("total", total);
-        result.put("page", page);
-        result.put("size", size);
-        return result;
+        return PageResult.of(vouchers, total, page, size);
     }
 
     public Voucher findById(Long id) {
@@ -70,7 +65,7 @@ public class VoucherService {
         } else {
             Voucher existing = voucherMapper.findById(voucher.getId());
             if (!"DRAFT".equals(existing.getStatus())) {
-                throw new RuntimeException("只能修改草稿状态的凭证");
+                throw new BusinessException("只能修改草稿状态的凭证");
             }
             voucherMapper.update(voucher);
             entryMapper.deleteByVoucherId(voucher.getId());
@@ -88,7 +83,7 @@ public class VoucherService {
 
     private void validateVoucher(Voucher voucher) {
         if (voucher.getEntries() == null || voucher.getEntries().isEmpty()) {
-            throw new RuntimeException("凭证分录不能为空");
+            throw new BusinessException("凭证分录不能为空");
         }
         BigDecimal totalDebit = BigDecimal.ZERO;
         BigDecimal totalCredit = BigDecimal.ZERO;
@@ -97,7 +92,7 @@ public class VoucherService {
             if (entry.getCreditAmount() != null) totalCredit = totalCredit.add(entry.getCreditAmount());
         }
         if (totalDebit.compareTo(totalCredit) != 0) {
-            throw new RuntimeException("借贷不平衡");
+            throw new BusinessException("借贷不平衡");
         }
     }
 
@@ -115,10 +110,10 @@ public class VoucherService {
     public void post(Long id, String reviewer) {
         Voucher voucher = voucherMapper.findById(id);
         if (voucher == null) {
-            throw new RuntimeException("凭证不存在");
+            throw new BusinessException("凭证不存在");
         }
         if (!"DRAFT".equals(voucher.getStatus())) {
-            throw new RuntimeException("只能过账草稿状态的凭证");
+            throw new BusinessException("只能过账草稿状态的凭证");
         }
         
         // 更新凭证状态
@@ -212,10 +207,10 @@ public class VoucherService {
     public void voidVoucher(Long id) {
         Voucher voucher = voucherMapper.findById(id);
         if (voucher == null) {
-            throw new RuntimeException("凭证不存在");
+            throw new BusinessException("凭证不存在");
         }
         if ("VOID".equals(voucher.getStatus())) {
-            throw new RuntimeException("凭证已作废");
+            throw new BusinessException("凭证已作废");
         }
         voucherMapper.voidVoucher(id);
     }
@@ -224,7 +219,7 @@ public class VoucherService {
     public void deleteById(Long id) {
         Voucher voucher = voucherMapper.findById(id);
         if (voucher != null && !"DRAFT".equals(voucher.getStatus())) {
-            throw new RuntimeException("只能删除草稿状态的凭证");
+            throw new BusinessException("只能删除草稿状态的凭证");
         }
         voucherMapper.deleteById(id);
     }
