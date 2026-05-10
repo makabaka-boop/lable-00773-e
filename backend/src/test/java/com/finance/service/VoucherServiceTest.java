@@ -1,5 +1,6 @@
 package com.finance.service;
 
+import com.finance.common.PageResult;
 import com.finance.entity.Voucher;
 import com.finance.entity.VoucherEntry;
 import org.junit.jupiter.api.Test;
@@ -11,7 +12,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -39,9 +39,9 @@ class VoucherServiceTest {
 
     @Test
     void testFindByConditionPage() {
-        Map<String, Object> result = voucherService.findByConditionPage("2026-01", null, null, 1, 10);
-        assertNotNull(result.get("list"));
-        assertNotNull(result.get("total"));
+        PageResult<Voucher> result = voucherService.findByConditionPage("2026-01", null, null, 1, 10);
+        assertNotNull(result.getList());
+        assertNotNull(result.getTotal());
     }
 
     @Test
@@ -64,7 +64,7 @@ class VoucherServiceTest {
         
         voucher.setEntries(Arrays.asList(entry1, entry2));
         
-        assertThrows(RuntimeException.class, () -> voucherService.save(voucher));
+        assertThrows(com.finance.exception.BusinessException.class, () -> voucherService.save(voucher));
     }
 
     @Test
@@ -109,7 +109,7 @@ class VoucherServiceTest {
         voucherService.save(voucher);
         voucherService.post(voucher.getId(), "审核人");
         
-        assertThrows(RuntimeException.class, () -> voucherService.deleteById(voucher.getId()));
+        assertThrows(com.finance.exception.BusinessException.class, () -> voucherService.deleteById(voucher.getId()));
     }
 
     private Voucher createTestVoucher() {

@@ -57,7 +57,7 @@ class AccountServiceTest {
         account.setName("重复科目");
         account.setDirection("DEBIT");
         
-        assertThrows(RuntimeException.class, () -> accountService.save(account));
+        assertThrows(com.finance.exception.BusinessException.class, () -> accountService.save(account));
     }
 
     @Test
@@ -78,6 +78,6 @@ class AccountServiceTest {
         Account parent = accountService.findByCode("1002");
         assertNotNull(parent);
         
-        assertThrows(RuntimeException.class, () -> accountService.deleteById(parent.getId()));
+        assertThrows(com.finance.exception.BusinessException.class, () -> accountService.deleteById(parent.getId()));
     }
 }

@@ -4,6 +4,7 @@ import com.finance.entity.AccountBalance;
 import org.apache.ibatis.annotations.*;
 import java.util.List;
 
+@Mapper
 public interface AccountBalanceMapper {
     
     @Select("SELECT * FROM account_balance WHERE period = #{period} ORDER BY account_code")

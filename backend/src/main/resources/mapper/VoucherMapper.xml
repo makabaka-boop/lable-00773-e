@@ -2,8 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.finance.mapper.VoucherMapper">
     
-    <select id="findByCondition" resultType="com.finance.entity.Voucher">
-        SELECT * FROM voucher
+    <sql id="voucherCondition">
         <where>
             <if test="period != null and period != ''">
                 AND period = #{period}
@@ -15,38 +14,23 @@
                 AND voucher_no LIKE CONCAT('%', #{voucherNo}, '%')
             </if>
         </where>
+    </sql>
+    
+    <select id="findByCondition" resultType="com.finance.entity.Voucher">
+        SELECT * FROM voucher
+        <include refid="voucherCondition"/>
         ORDER BY voucher_no DESC
     </select>
     
     <select id="findByConditionPage" resultType="com.finance.entity.Voucher">
         SELECT * FROM voucher
-        <where>
-            <if test="period != null and period != ''">
-                AND period = #{period}
-            </if>
-            <if test="status != null and status != ''">
-                AND status = #{status}
-            </if>
-            <if test="voucherNo != null and voucherNo != ''">
-                AND voucher_no LIKE CONCAT('%', #{voucherNo}, '%')
-            </if>
-        </where>
+        <include refid="voucherCondition"/>
         ORDER BY voucher_no DESC
         LIMIT #{size} OFFSET #{offset}
     </select>
     
     <select id="countByCondition" resultType="int">
         SELECT COUNT(*) FROM voucher
-        <where>
-            <if test="period != null and period != ''">
-                AND period = #{period}
-            </if>
-            <if test="status != null and status != ''">
-                AND status = #{status}
-            </if>
-            <if test="voucherNo != null and voucherNo != ''">
-                AND voucher_no LIKE CONCAT('%', #{voucherNo}, '%')
-            </if>
-        </where>
+        <include refid="voucherCondition"/>
     </select>
 </mapper>

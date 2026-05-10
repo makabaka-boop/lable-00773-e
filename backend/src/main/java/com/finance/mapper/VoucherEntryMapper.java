@@ -4,6 +4,7 @@ import com.finance.entity.VoucherEntry;
 import org.apache.ibatis.annotations.*;
 import java.util.List;
 
+@Mapper
 public interface VoucherEntryMapper {
     
     @Select("SELECT * FROM voucher_entry WHERE voucher_id = #{voucherId} ORDER BY seq")
