@@ -1,5 +1,6 @@
 package com.finance.controller;
 
+import com.finance.common.PageResult;
 import com.finance.common.Result;
 import com.finance.entity.Voucher;
 import com.finance.service.VoucherService;
@@ -24,7 +25,7 @@ public class VoucherController {
     }
     
     @GetMapping("/page")
-    public Result<java.util.Map<String, Object>> page(
+    public Result<PageResult<Voucher>> page(
             @RequestParam(required = false) String period,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String voucherNo,
@@ -40,52 +41,32 @@ public class VoucherController {
 
     @PostMapping
     public Result<Void> save(@RequestBody Voucher voucher) {
-        try {
-            voucherService.save(voucher);
-            return Result.success();
-        } catch (Exception e) {
-            return Result.error(e.getMessage());
-        }
+        voucherService.save(voucher);
+        return Result.success();
     }
 
     @PutMapping("/{id}")
     public Result<Void> update(@PathVariable Long id, @RequestBody Voucher voucher) {
-        try {
-            voucher.setId(id);
-            voucherService.save(voucher);
-            return Result.success();
-        } catch (Exception e) {
-            return Result.error(e.getMessage());
-        }
+        voucher.setId(id);
+        voucherService.save(voucher);
+        return Result.success();
     }
 
     @PostMapping("/{id}/post")
     public Result<Void> post(@PathVariable Long id, @RequestBody Map<String, String> body) {
-        try {
-            voucherService.post(id, body.get("reviewer"));
-            return Result.success();
-        } catch (Exception e) {
-            return Result.error(e.getMessage());
-        }
+        voucherService.post(id, body.get("reviewer"));
+        return Result.success();
     }
 
     @PostMapping("/{id}/void")
     public Result<Void> voidVoucher(@PathVariable Long id) {
-        try {
-            voucherService.voidVoucher(id);
-            return Result.success();
-        } catch (Exception e) {
-            return Result.error(e.getMessage());
-        }
+        voucherService.voidVoucher(id);
+        return Result.success();
     }
 
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
-        try {
-            voucherService.deleteById(id);
-            return Result.success();
-        } catch (Exception e) {
-            return Result.error(e.getMessage());
-        }
+        voucherService.deleteById(id);
+        return Result.success();
     }
 }

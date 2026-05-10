@@ -4,6 +4,7 @@ import com.finance.entity.Voucher;
 import org.apache.ibatis.annotations.*;
 import java.util.List;
 
+@Mapper
 public interface VoucherMapper {
     
     List<Voucher> findByCondition(@Param("period") String period, 

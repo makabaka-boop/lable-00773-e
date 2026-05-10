@@ -222,6 +222,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { ledgerApi, accountApi } from '../api'
+import { formatMoney } from '../utils/formatters'
 
 const queryType = ref('detail')
 const filters = ref({ period: '', accountCode: '' })
@@ -231,22 +232,14 @@ const balanceData = ref([])
 const openingBalance = ref(0)
 const queryLoading = ref(false)
 
-// 分页相关（暂时保留，未来可能用于其他功能）
-
 const currentAccountName = computed(() => {
   const acc = accounts.value.find(a => a.code === filters.value.accountCode)
   return acc ? `${acc.code} - ${acc.name}` : ''
 })
 
-const hasData = computed(() => {
-  return queryType.value === 'detail' ? detailData.value.length > 0 : balanceData.value.length > 0
-})
-
 const periodDebit = computed(() => detailData.value.reduce((s, e) => s + (e.debitAmount || 0), 0))
 const periodCredit = computed(() => detailData.value.reduce((s, e) => s + (e.creditAmount || 0), 0))
 const closingBalance = computed(() => openingBalance.value + periodDebit.value - periodCredit.value)
-
-const formatMoney = (v) => (v || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 const getAccountName = (code) => {
   const acc = accounts.value.find(a => a.code === code)
@@ -284,15 +277,11 @@ const handleQuery = async () => {
         queryLoading.value = false
         return ElMessage.warning('请选择会计科目')
       }
-      // 明细账不分页
-      const res = await ledgerApi.detail(filters.value.accountCode, filters.value.period)
-      const data = res.data.data
+      const data = await ledgerApi.detail(filters.value.accountCode, filters.value.period)
       detailData.value = data.entries || []
       openingBalance.value = (data.balance?.openingDebit || 0) - (data.balance?.openingCredit || 0)
     } else {
-      // 科目余额表也不分页
-      const res = await ledgerApi.balance(filters.value.period)
-      balanceData.value = res.data.data || []
+      balanceData.value = await ledgerApi.balance(filters.value.period)
     }
     ElMessage.success('查询完成')
   } catch (e) {
@@ -304,8 +293,7 @@ const handleQuery = async () => {
 
 const loadAccounts = async () => {
   try {
-    const res = await accountApi.listEnabled()
-    accounts.value = res.data.data || []
+    accounts.value = await accountApi.listEnabled()
   } catch (e) {
     console.error('加载科目失败', e)
   }
