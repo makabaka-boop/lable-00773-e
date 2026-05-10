@@ -10,9 +10,15 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @Slf4j
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(BusinessException.class)
+    public Result<Void> handleBusinessException(BusinessException e) {
+        log.warn("业务异常: {}", e.getMessage());
+        return Result.error(e.getCode(), e.getMessage());
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public Result<Void> handleRuntimeException(RuntimeException e) {
-        log.error("业务异常: {}", e.getMessage());
+        log.error("运行时异常: {}", e.getMessage());
         return Result.error(e.getMessage());
     }
 

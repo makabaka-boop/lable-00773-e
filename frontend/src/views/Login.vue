@@ -148,27 +148,21 @@ const handleLogin = async () => {
     loading.value = true
     try {
       const res = await authApi.login(form.username, form.password)
-      if (res.data.code === 200) {
-        // 保存token和用户信息
-        const token = res.data.data?.token || 'mock-token-' + Date.now()
-        const userInfo = res.data.data?.user || { username: form.username, name: '管理员' }
-        
-        localStorage.setItem('token', token)
-        localStorage.setItem('userInfo', JSON.stringify(userInfo))
-        if (rememberMe.value) {
-          localStorage.setItem('username', form.username)
-        } else {
-          localStorage.removeItem('username')
-        }
-
-        ElMessage.success('登录成功')
-        router.push('/account')
+      const token = res.data?.token || 'mock-token-' + Date.now()
+      const userInfo = res.data?.user || { username: form.username, name: '管理员' }
+      
+      localStorage.setItem('token', token)
+      localStorage.setItem('userInfo', JSON.stringify(userInfo))
+      if (rememberMe.value) {
+        localStorage.setItem('username', form.username)
       } else {
-        ElMessage.error(res.data.message || '登录失败')
+        localStorage.removeItem('username')
       }
+
+      ElMessage.success('登录成功')
+      router.push('/account')
     } catch (error) {
       console.error('登录错误:', error)
-      ElMessage.error('登录失败，请检查网络连接')
     } finally {
       loading.value = false
     }

@@ -1,5 +1,6 @@
 package com.finance.controller;
 
+import com.finance.common.PageResult;
 import com.finance.common.Result;
 import com.finance.entity.AccountBalance;
 import com.finance.service.LedgerService;
@@ -41,7 +42,7 @@ public class LedgerController {
     
     // 科目余额表分页
     @GetMapping("/balance/page")
-    public Result<Map<String, Object>> getBalanceSheetPage(
+    public Result<PageResult<AccountBalance>> getBalanceSheetPage(
             @RequestParam String period,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {

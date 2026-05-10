@@ -267,14 +267,14 @@ const loadData = async () => {
   try {
     // 加载全部数据用于统计
     const allRes = await accountApi.list()
-    allAccounts.value = allRes.data.data || []
+    allAccounts.value = allRes.data || []
     
     // 加载分页数据用于表格显示
     const pageRes = await accountApi.page(currentPage.value, pageSize.value)
-    accounts.value = pageRes.data.data?.list || []
-    total.value = pageRes.data.data?.total || 0
+    accounts.value = pageRes.data?.list || []
+    total.value = pageRes.data?.total || 0
   } catch (e) {
-    ElMessage.error('加载数据失败')
+    console.error('加载数据失败', e)
   } finally {
     tableLoading.value = false
   }
@@ -316,31 +316,31 @@ const handleSave = async () => {
   saving.value = true
   try {
     form.value.level = form.value.parentCode ? 2 : 1
-    const res = await accountApi.save(form.value)
-    if (res.data.code === 200) {
-      ElMessage.success('保存成功')
-      dialogVisible.value = false
-      loadData()
-    } else {
-      ElMessage.error(res.data.message)
-    }
+    await accountApi.save(form.value)
+    ElMessage.success('保存成功')
+    dialogVisible.value = false
+    loadData()
+  } catch (e) {
+    console.error('保存失败', e)
   } finally {
     saving.value = false
   }
 }
 
 const handleDelete = async (row) => {
-  await ElMessageBox.confirm(`确定要删除科目「${row.name}」吗？`, '删除确认', { 
-    type: 'warning',
-    confirmButtonText: '确认删除',
-    cancelButtonText: '取消'
-  })
-  const res = await accountApi.delete(row.id)
-  if (res.data.code === 200) {
+  try {
+    await ElMessageBox.confirm(`确定要删除科目「${row.name}」吗？`, '删除确认', { 
+      type: 'warning',
+      confirmButtonText: '确认删除',
+      cancelButtonText: '取消'
+    })
+    await accountApi.delete(row.id)
     ElMessage.success('删除成功')
     loadData()
-  } else {
-    ElMessage.error(res.data.message)
+  } catch (e) {
+    if (e !== 'cancel') {
+      console.error('删除失败', e)
+    }
   }
 }
 

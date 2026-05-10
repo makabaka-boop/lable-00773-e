@@ -1,5 +1,6 @@
 package com.finance.service;
 
+import com.finance.common.PageResult;
 import com.finance.entity.AccountBalance;
 import com.finance.entity.VoucherEntry;
 import com.finance.mapper.AccountBalanceMapper;
@@ -34,7 +35,7 @@ public class LedgerService {
         AccountBalance balance = balanceMapper.findByAccountAndPeriod(accountCode, period);
         int total = entryMapper.countByAccountAndPeriod(accountCode, period);
         Map<String, Object> result = new HashMap<>();
-        result.put("entries", entries);
+        result.put("list", entries);
         result.put("balance", balance);
         result.put("total", total);
         result.put("page", page);
@@ -48,15 +49,10 @@ public class LedgerService {
     }
     
     // 科目余额表分页
-    public Map<String, Object> getBalanceSheetPage(String period, int page, int size) {
+    public PageResult<AccountBalance> getBalanceSheetPage(String period, int page, int size) {
         int offset = (page - 1) * size;
         List<AccountBalance> list = balanceMapper.findByPeriodPage(period, offset, size);
         int total = balanceMapper.countByPeriod(period);
-        Map<String, Object> result = new HashMap<>();
-        result.put("list", list);
-        result.put("total", total);
-        result.put("page", page);
-        result.put("size", size);
-        return result;
+        return PageResult.of(list, total, page, size);
     }
 }

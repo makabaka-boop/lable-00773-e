@@ -22,21 +22,27 @@ api.interceptors.request.use(
   }
 )
 
-// 响应拦截器 - 处理错误
+// 响应拦截器 - 统一处理响应
 api.interceptors.response.use(
   response => {
-    return response
+    const res = response.data
+    if (res.code !== 200) {
+      ElMessage.error(res.message || '请求失败')
+      return Promise.reject(new Error(res.message || '请求失败'))
+    }
+    return res
   },
   error => {
     if (error.response) {
       if (error.response.status === 401) {
-        // 未授权，清除token并跳转到登录页
         localStorage.removeItem('token')
         localStorage.removeItem('userInfo')
         ElMessage.error('登录已过期，请重新登录')
         router.push('/login')
       } else if (error.response.status >= 500) {
         ElMessage.error('服务器错误，请稍后重试')
+      } else if (error.response.data && error.response.data.message) {
+        ElMessage.error(error.response.data.message)
       }
     } else {
       ElMessage.error('网络错误，请检查网络连接')

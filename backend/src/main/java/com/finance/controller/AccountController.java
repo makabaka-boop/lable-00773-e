@@ -1,5 +1,6 @@
 package com.finance.controller;
 
+import com.finance.common.PageResult;
 import com.finance.common.Result;
 import com.finance.entity.Account;
 import com.finance.service.AccountService;
@@ -20,7 +21,7 @@ public class AccountController {
     }
     
     @GetMapping("/page")
-    public Result<java.util.Map<String, Object>> page(
+    public Result<PageResult<Account>> page(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
         return Result.success(accountService.findPage(page, size));
@@ -43,32 +44,20 @@ public class AccountController {
 
     @PostMapping
     public Result<Void> save(@RequestBody Account account) {
-        try {
-            accountService.save(account);
-            return Result.success();
-        } catch (Exception e) {
-            return Result.error(e.getMessage());
-        }
+        accountService.save(account);
+        return Result.success();
     }
 
     @PutMapping("/{id}")
     public Result<Void> update(@PathVariable Long id, @RequestBody Account account) {
-        try {
-            account.setId(id);
-            accountService.save(account);
-            return Result.success();
-        } catch (Exception e) {
-            return Result.error(e.getMessage());
-        }
+        account.setId(id);
+        accountService.save(account);
+        return Result.success();
     }
 
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
-        try {
-            accountService.deleteById(id);
-            return Result.success();
-        } catch (Exception e) {
-            return Result.error(e.getMessage());
-        }
+        accountService.deleteById(id);
+        return Result.success();
     }
 }

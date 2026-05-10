@@ -1,6 +1,7 @@
 package com.finance.service;
 
 import com.finance.entity.Account;
+import com.finance.exception.BusinessException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -57,7 +58,7 @@ class AccountServiceTest {
         account.setName("重复科目");
         account.setDirection("DEBIT");
         
-        assertThrows(RuntimeException.class, () -> accountService.save(account));
+        assertThrows(BusinessException.class, () -> accountService.save(account));
     }
 
     @Test
@@ -78,6 +79,6 @@ class AccountServiceTest {
         Account parent = accountService.findByCode("1002");
         assertNotNull(parent);
         
-        assertThrows(RuntimeException.class, () -> accountService.deleteById(parent.getId()));
+        assertThrows(BusinessException.class, () -> accountService.deleteById(parent.getId()));
     }
 }

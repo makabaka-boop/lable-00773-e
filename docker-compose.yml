@@ -11,12 +11,13 @@ services:
       MYSQL_DATABASE: finance
     volumes:
       - mysql-data:/var/lib/mysql
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --default-authentication-plugin=mysql_native_password
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-pfinance123"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
     restart: unless-stopped
     networks:
       - finance-network
@@ -25,9 +26,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-      platforms:
-        - linux/amd64
-        - linux/arm64
     container_name: finance-backend
     ports:
       - "8080:8080"
@@ -40,11 +38,11 @@ services:
       mysql:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/api/auth/current"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-      start_period: 20s
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
     restart: unless-stopped
     networks:
       - finance-network
@@ -53,15 +51,12 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      platforms:
-        - linux/amd64
-        - linux/arm64
     container_name: finance-frontend
     ports:
       - "8081:80"
     depends_on:
       backend:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - finance-network

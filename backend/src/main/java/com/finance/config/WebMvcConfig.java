@@ -22,7 +22,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/api/auth/login",
                         "/api/auth/logout",
-                        "/api/auth/public-key"
+                        "/api/auth/public-key",
+                        "/api/health"
                 );
     }
     
