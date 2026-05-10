@@ -1,0 +1,22 @@
+FROM maven:3.9-eclipse-temurin-17
+
+WORKDIR /app
+
+# 配置阿里云 Maven 镜像加速
+RUN mkdir -p /root/.m2 && \
+    echo '<?xml version="1.0" encoding="UTF-8"?>\n\
+<settings>\n\
+  <mirrors>\n\
+    <mirror>\n\
+      <id>aliyun</id>\n\
+      <mirrorOf>central</mirrorOf>\n\
+      <url>https://maven.aliyun.com/repository/public</url>\n\
+    </mirror>\n\
+  </mirrors>\n\
+</settings>' > /root/.m2/settings.xml
+
+# 复制 pom.xml 先下载依赖（利用缓存）
+COPY pom.xml .
+RUN mvn dependency:go-offline -B
+
+EXPOSE 8080

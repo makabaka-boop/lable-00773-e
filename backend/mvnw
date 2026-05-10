@@ -1,0 +1,41 @@
+#!/bin/sh
+# Maven Wrapper script
+
+set -e
+
+MAVEN_PROJECTBASEDIR="${MAVEN_BASEDIR:-$(cd "$(dirname "$0")" && pwd)}"
+MAVEN_WRAPPER_JAR="$MAVEN_PROJECTBASEDIR/.mvn/wrapper/maven-wrapper.jar"
+MAVEN_WRAPPER_PROPERTIES="$MAVEN_PROJECTBASEDIR/.mvn/wrapper/maven-wrapper.properties"
+
+# Download wrapper jar if not present
+if [ ! -f "$MAVEN_WRAPPER_JAR" ]; then
+    if [ -f "$MAVEN_WRAPPER_PROPERTIES" ]; then
+        wrapperUrl=$(grep 'wrapperUrl' "$MAVEN_WRAPPER_PROPERTIES" | cut -d'=' -f2-)
+        if command -v wget > /dev/null; then
+            wget -q -O "$MAVEN_WRAPPER_JAR" "$wrapperUrl"
+        elif command -v curl > /dev/null; then
+            curl -s -o "$MAVEN_WRAPPER_JAR" "$wrapperUrl"
+        fi
+    fi
+fi
+
+# Download Maven if wrapper jar exists
+if [ -f "$MAVEN_WRAPPER_JAR" ]; then
+    exec java -jar "$MAVEN_WRAPPER_JAR" "$@"
+else
+    # Fallback: download and use Maven directly
+    MAVEN_HOME="$MAVEN_PROJECTBASEDIR/.mvn/maven"
+    if [ ! -d "$MAVEN_HOME" ]; then
+        distributionUrl=$(grep 'distributionUrl' "$MAVEN_WRAPPER_PROPERTIES" | cut -d'=' -f2-)
+        mkdir -p "$MAVEN_HOME"
+        if command -v wget > /dev/null; then
+            wget -q -O /tmp/maven.zip "$distributionUrl"
+        elif command -v curl > /dev/null; then
+            curl -s -o /tmp/maven.zip "$distributionUrl"
+        fi
+        unzip -q /tmp/maven.zip -d "$MAVEN_HOME"
+        rm /tmp/maven.zip
+    fi
+    MAVEN_BIN=$(find "$MAVEN_HOME" -name 'mvn' -type f | head -1)
+    exec "$MAVEN_BIN" "$@"
+fi

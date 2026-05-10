@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.finance.mapper.VoucherEntryMapper">
+    
+    <insert id="batchInsert" parameterType="list">
+        INSERT INTO voucher_entry (voucher_id, account_code, account_name, summary, debit_amount, credit_amount, seq)
+        VALUES
+        <foreach collection="entries" item="entry" separator=",">
+            (#{entry.voucherId}, #{entry.accountCode}, #{entry.accountName}, #{entry.summary}, 
+             #{entry.debitAmount}, #{entry.creditAmount}, #{entry.seq})
+        </foreach>
+    </insert>
+    
+    <select id="findByAccountAndPeriod" resultType="com.finance.entity.VoucherEntry">
+        SELECT ve.*, v.voucher_no, v.voucher_date
+        FROM voucher_entry ve
+        JOIN voucher v ON ve.voucher_id = v.id
+        WHERE ve.account_code = #{accountCode}
+        AND v.period = #{period}
+        AND v.status = 'POSTED'
+        ORDER BY v.voucher_date, v.voucher_no, ve.seq
+    </select>
+    
+    <select id="findByAccountAndPeriodPage" resultType="com.finance.entity.VoucherEntry">
+        SELECT ve.*, v.voucher_no, v.voucher_date
+        FROM voucher_entry ve
+        JOIN voucher v ON ve.voucher_id = v.id
+        WHERE ve.account_code = #{accountCode}
+        AND v.period = #{period}
+        AND v.status = 'POSTED'
+        ORDER BY v.voucher_date, v.voucher_no, ve.seq
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+    
+    <select id="countByAccountAndPeriod" resultType="int">
+        SELECT COUNT(*)
+        FROM voucher_entry ve
+        JOIN voucher v ON ve.voucher_id = v.id
+        WHERE ve.account_code = #{accountCode}
+        AND v.period = #{period}
+        AND v.status = 'POSTED'
+    </select>
+</mapper>
