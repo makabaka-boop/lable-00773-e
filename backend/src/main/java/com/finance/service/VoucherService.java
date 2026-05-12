@@ -1,9 +1,13 @@
 package com.finance.service;
 
+import com.finance.common.PageResult;
 import com.finance.entity.Account;
 import com.finance.entity.AccountBalance;
 import com.finance.entity.Voucher;
 import com.finance.entity.VoucherEntry;
+import com.finance.enums.VoucherStatus;
+import com.finance.exception.BusinessException;
+import com.finance.exception.ErrorCode;
 import com.finance.mapper.AccountBalanceMapper;
 import com.finance.mapper.AccountMapper;
 import com.finance.mapper.VoucherMapper;
@@ -13,9 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -34,19 +36,14 @@ public class VoucherService {
         return vouchers;
     }
     
-    public Map<String, Object> findByConditionPage(String period, String status, String voucherNo, int page, int size) {
-        int offset = (page - 1) * size;
+    public PageResult<Voucher> findByConditionPage(String period, String status, String voucherNo, int page, int size) {
+        int offset = PageResult.calculateOffset(page, size);
         List<Voucher> vouchers = voucherMapper.findByConditionPage(period, status, voucherNo, offset, size);
         for (Voucher v : vouchers) {
             v.setEntries(entryMapper.findByVoucherId(v.getId()));
         }
-        int total = voucherMapper.countByCondition(period, status, voucherNo);
-        Map<String, Object> result = new HashMap<>();
-        result.put("list", vouchers);
-        result.put("total", total);
-        result.put("page", page);
-        result.put("size", size);
-        return result;
+        long total = voucherMapper.countByCondition(period, status, voucherNo);
+        return PageResult.of(vouchers, total, page, size);
     }
 
     public Voucher findById(Long id) {
@@ -65,12 +62,12 @@ public class VoucherService {
             String period = voucher.getVoucherDate().format(DateTimeFormatter.ofPattern("yyyy-MM"));
             voucher.setPeriod(period);
             voucher.setVoucherNo(generateVoucherNo(period));
-            voucher.setStatus("DRAFT");
+            voucher.setStatus(VoucherStatus.DRAFT.getCode());
             voucherMapper.insert(voucher);
         } else {
             Voucher existing = voucherMapper.findById(voucher.getId());
-            if (!"DRAFT".equals(existing.getStatus())) {
-                throw new RuntimeException("只能修改草稿状态的凭证");
+            if (!VoucherStatus.DRAFT.getCode().equals(existing.getStatus())) {
+                throw new BusinessException(ErrorCode.VOUCHER_NOT_DRAFT);
             }
             voucherMapper.update(voucher);
             entryMapper.deleteByVoucherId(voucher.getId());
@@ -88,7 +85,7 @@ public class VoucherService {
 
     private void validateVoucher(Voucher voucher) {
         if (voucher.getEntries() == null || voucher.getEntries().isEmpty()) {
-            throw new RuntimeException("凭证分录不能为空");
+            throw new BusinessException(ErrorCode.VOUCHER_ENTRIES_EMPTY);
         }
         BigDecimal totalDebit = BigDecimal.ZERO;
         BigDecimal totalCredit = BigDecimal.ZERO;
@@ -97,7 +94,7 @@ public class VoucherService {
             if (entry.getCreditAmount() != null) totalCredit = totalCredit.add(entry.getCreditAmount());
         }
         if (totalDebit.compareTo(totalCredit) != 0) {
-            throw new RuntimeException("借贷不平衡");
+            throw new BusinessException(ErrorCode.VOUCHER_BALANCE_NOT_MATCH);
         }
     }
 
@@ -115,10 +112,10 @@ public class VoucherService {
     public void post(Long id, String reviewer) {
         Voucher voucher = voucherMapper.findById(id);
         if (voucher == null) {
-            throw new RuntimeException("凭证不存在");
+            throw new BusinessException(ErrorCode.VOUCHER_NOT_FOUND);
         }
-        if (!"DRAFT".equals(voucher.getStatus())) {
-            throw new RuntimeException("只能过账草稿状态的凭证");
+        if (!VoucherStatus.DRAFT.getCode().equals(voucher.getStatus())) {
+            throw new BusinessException(ErrorCode.VOUCHER_CANNOT_POST);
         }
         
         // 更新凭证状态
@@ -212,10 +209,10 @@ public class VoucherService {
     public void voidVoucher(Long id) {
         Voucher voucher = voucherMapper.findById(id);
         if (voucher == null) {
-            throw new RuntimeException("凭证不存在");
+            throw new BusinessException(ErrorCode.VOUCHER_NOT_FOUND);
         }
-        if ("VOID".equals(voucher.getStatus())) {
-            throw new RuntimeException("凭证已作废");
+        if (VoucherStatus.VOID.getCode().equals(voucher.getStatus())) {
+            throw new BusinessException(ErrorCode.VOUCHER_ALREADY_VOID);
         }
         voucherMapper.voidVoucher(id);
     }
@@ -223,8 +220,8 @@ public class VoucherService {
     @Transactional
     public void deleteById(Long id) {
         Voucher voucher = voucherMapper.findById(id);
-        if (voucher != null && !"DRAFT".equals(voucher.getStatus())) {
-            throw new RuntimeException("只能删除草稿状态的凭证");
+        if (voucher != null && !VoucherStatus.DRAFT.getCode().equals(voucher.getStatus())) {
+            throw new BusinessException(ErrorCode.VOUCHER_CANNOT_DELETE);
         }
         voucherMapper.deleteById(id);
     }

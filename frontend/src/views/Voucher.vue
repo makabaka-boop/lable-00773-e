@@ -142,8 +142,8 @@
             :page-sizes="[10, 20, 50, 100]"
             :total="total"
             layout="total, sizes, prev, pager, next, jumper"
-            @size-change="handleSizeChange"
-            @current-change="handlePageChange"
+            @size-change="handleSizeChangeWithLoad"
+            @current-change="handlePageChangeWithLoad"
           />
         </div>
       </div>
@@ -318,21 +318,22 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { voucherApi, accountApi } from '../api'
+import { usePagination } from '../composables/usePagination'
+import { useLoading } from '../composables/useLoading'
+import { formatMoney, getStatusText } from '../utils/format'
+import { VOUCHER_STATUS } from '../utils/constants'
 
 const vouchers = ref([])
 const accounts = ref([])
 const dialogVisible = ref(false)
 const viewMode = ref(false)
-const saving = ref(false)
-const tableLoading = ref(false)
-const refreshing = ref(false)
 const filters = ref({ period: '', status: '', voucherNo: '' })
 const form = ref({ voucherDate: '', attachmentCount: 0, preparer: '', entries: [] })
 
-// 分页相关
-const currentPage = ref(1)
-const pageSize = ref(10)
-const total = ref(0)
+const { currentPage, pageSize, total, handlePageChange, handleSizeChange } = usePagination(10)
+const { loading: tableLoading, withLoading: withTableLoading } = useLoading()
+const { loading: saving, withLoading: withSaving } = useLoading()
+const { loading: refreshing, withLoading: withRefreshing } = useLoading()
 
 const dialogTitle = computed(() => {
   if (viewMode.value) return '凭证详情'
@@ -343,49 +344,38 @@ const totalDebit = computed(() => form.value.entries.reduce((s, e) => s + (e.deb
 const totalCredit = computed(() => form.value.entries.reduce((s, e) => s + (e.creditAmount || 0), 0))
 const isBalanced = computed(() => Math.abs(totalDebit.value - totalCredit.value) < 0.01 && totalDebit.value > 0)
 
-const formatMoney = (v) => (v || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-const statusText = (s) => ({ DRAFT: '草稿', POSTED: '已过账', VOID: '已作废' }[s] || s)
 const getDebitTotal = (row) => row.entries?.reduce((s, e) => s + (e.debitAmount || 0), 0) || 0
 const getCreditTotal = (row) => row.entries?.reduce((s, e) => s + (e.creditAmount || 0), 0) || 0
 
 const loadData = async () => {
-  tableLoading.value = true
-  try {
+  await withTableLoading(async () => {
     const res = await voucherApi.page({ ...filters.value, page: currentPage.value, size: pageSize.value })
-    vouchers.value = res.data.data?.list || []
-    total.value = res.data.data?.total || 0
-  } catch (e) {
-    ElMessage.error('加载数据失败')
-  } finally {
-    tableLoading.value = false
-  }
+    vouchers.value = res.data?.list || []
+    total.value = res.data?.total || 0
+  })
 }
 
 const handleRefresh = async () => {
-  refreshing.value = true
-  try {
+  await withRefreshing(async () => {
     await loadData()
     ElMessage.success('刷新成功')
-  } finally {
-    refreshing.value = false
-  }
+  })
 }
 
-const handlePageChange = (page) => {
-  currentPage.value = page
+const handlePageChangeWithLoad = (page) => {
+  handlePageChange(page)
   loadData()
 }
 
-const handleSizeChange = (size) => {
-  pageSize.value = size
-  currentPage.value = 1
+const handleSizeChangeWithLoad = (size) => {
+  handleSizeChange(size)
   loadData()
 }
 
 const loadAccounts = async () => {
   try {
     const res = await accountApi.listEnabled()
-    accounts.value = res.data.data || []
+    accounts.value = res.data || []
   } catch (e) {
     console.error('加载科目失败', e)
   }
@@ -413,14 +403,14 @@ const handleAdd = () => {
 const handleView = async (row) => {
   viewMode.value = true
   const res = await voucherApi.getById(row.id)
-  form.value = res.data.data
+  form.value = res.data
   dialogVisible.value = true
 }
 
 const handleEdit = async (row) => {
   viewMode.value = false
   const res = await voucherApi.getById(row.id)
-  form.value = res.data.data
+  form.value = res.data
   dialogVisible.value = true
 }
 
@@ -432,19 +422,12 @@ const handleSave = async () => {
     return ElMessage.error('借贷不平衡，无法保存')
   }
   
-  saving.value = true
-  try {
-    const res = await voucherApi.save(form.value)
-    if (res.data.code === 200) {
-      ElMessage.success('保存成功')
-      dialogVisible.value = false
-      loadData()
-    } else {
-      ElMessage.error(res.data.message)
-    }
-  } finally {
-    saving.value = false
-  }
+  await withSaving(async () => {
+    await voucherApi.save(form.value)
+    ElMessage.success('保存成功')
+    dialogVisible.value = false
+    loadData()
+  })
 }
 
 const handlePost = async (row) => {
@@ -454,13 +437,9 @@ const handlePost = async (row) => {
       confirmButtonText: '确认过账',
       cancelButtonText: '取消'
     })
-    const res = await voucherApi.post(row.id, value)
-    if (res.data.code === 200) {
-      ElMessage.success('过账成功')
-      loadData()
-    } else {
-      ElMessage.error(res.data.message)
-    }
+    await voucherApi.post(row.id, value)
+    ElMessage.success('过账成功')
+    loadData()
   } catch (e) {
     // 用户取消
   }
@@ -472,13 +451,9 @@ const handleVoid = async (row) => {
     confirmButtonText: '确认作废',
     cancelButtonText: '取消'
   })
-  const res = await voucherApi.void(row.id)
-  if (res.data.code === 200) {
-    ElMessage.success('作废成功')
-    loadData()
-  } else {
-    ElMessage.error(res.data.message)
-  }
+  await voucherApi.void(row.id)
+  ElMessage.success('作废成功')
+  loadData()
 }
 
 const addEntry = () => form.value.entries.push(createEntry())
