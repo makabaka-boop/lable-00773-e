@@ -1,7 +1,9 @@
 package com.finance.service;
 
+import com.finance.common.PageResult;
 import com.finance.entity.Voucher;
 import com.finance.entity.VoucherEntry;
+import com.finance.enums.VoucherStatus;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -11,7 +13,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -28,7 +29,7 @@ class VoucherServiceTest {
         voucherService.save(voucher);
         
         assertNotNull(voucher.getId());
-        assertEquals("DRAFT", voucher.getStatus());
+        assertEquals(VoucherStatus.DRAFT.getCode(), voucher.getStatus());
     }
 
     @Test
@@ -39,9 +40,9 @@ class VoucherServiceTest {
 
     @Test
     void testFindByConditionPage() {
-        Map<String, Object> result = voucherService.findByConditionPage("2026-01", null, null, 1, 10);
-        assertNotNull(result.get("list"));
-        assertNotNull(result.get("total"));
+        PageResult<Voucher> result = voucherService.findByConditionPage("2026-01", null, null, 1, 10);
+        assertNotNull(result.getList());
+        assertNotNull(result.getTotal());
     }
 
     @Test
@@ -78,7 +79,7 @@ class VoucherServiceTest {
         
         // 验证状态
         Voucher posted = voucherService.findById(voucher.getId());
-        assertEquals("POSTED", posted.getStatus());
+        assertEquals(VoucherStatus.POSTED.getCode(), posted.getStatus());
     }
 
     @Test
@@ -89,7 +90,7 @@ class VoucherServiceTest {
         voucherService.voidVoucher(voucher.getId());
         
         Voucher voided = voucherService.findById(voucher.getId());
-        assertEquals("VOID", voided.getStatus());
+        assertEquals(VoucherStatus.VOID.getCode(), voided.getStatus());
     }
 
     @Test

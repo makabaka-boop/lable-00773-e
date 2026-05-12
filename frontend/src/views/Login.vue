@@ -118,11 +118,12 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { User, Lock, DataAnalysis, Operation } from '@element-plus/icons-vue'
 import { authApi } from '../api'
+import { useLoading } from '../composables/useLoading'
 
 const router = useRouter()
 const formRef = ref(null)
-const loading = ref(false)
 const rememberMe = ref(false)
+const { loading, withLoading } = useLoading()
 
 const form = reactive({
   username: '',
@@ -145,37 +146,26 @@ const handleLogin = async () => {
   await formRef.value.validate(async (valid) => {
     if (!valid) return
 
-    loading.value = true
-    try {
+    await withLoading(async () => {
       const res = await authApi.login(form.username, form.password)
-      if (res.data.code === 200) {
-        // 保存token和用户信息
-        const token = res.data.data?.token || 'mock-token-' + Date.now()
-        const userInfo = res.data.data?.user || { username: form.username, name: '管理员' }
-        
-        localStorage.setItem('token', token)
-        localStorage.setItem('userInfo', JSON.stringify(userInfo))
-        if (rememberMe.value) {
-          localStorage.setItem('username', form.username)
-        } else {
-          localStorage.removeItem('username')
-        }
-
-        ElMessage.success('登录成功')
-        router.push('/account')
+      const token = res.data?.token
+      const userInfo = res.data?.user
+      
+      localStorage.setItem('token', token)
+      localStorage.setItem('userInfo', JSON.stringify(userInfo))
+      
+      if (rememberMe.value) {
+        localStorage.setItem('username', form.username)
       } else {
-        ElMessage.error(res.data.message || '登录失败')
+        localStorage.removeItem('username')
       }
-    } catch (error) {
-      console.error('登录错误:', error)
-      ElMessage.error('登录失败，请检查网络连接')
-    } finally {
-      loading.value = false
-    }
+
+      ElMessage.success('登录成功')
+      router.push('/account')
+    })
   })
 }
 
-// 检查是否有记住的用户名
 const savedUsername = localStorage.getItem('username')
 if (savedUsername) {
   form.username = savedUsername

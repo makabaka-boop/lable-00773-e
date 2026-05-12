@@ -10,9 +10,15 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @Slf4j
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(BusinessException.class)
+    public Result<Void> handleBusinessException(BusinessException e) {
+        log.warn("业务异常: code={}, message={}", e.getCode(), e.getMessage());
+        return Result.error(e.getCode(), e.getMessage());
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public Result<Void> handleRuntimeException(RuntimeException e) {
-        log.error("业务异常: {}", e.getMessage());
+        log.error("运行时异常: {}", e.getMessage(), e);
         return Result.error(e.getMessage());
     }
 
@@ -23,12 +29,12 @@ public class GlobalExceptionHandler {
                 .findFirst()
                 .orElse("参数校验失败");
         log.warn("参数校验失败: {}", message);
-        return Result.error(message);
+        return Result.error(ErrorCode.PARAM_ERROR.getCode(), message);
     }
 
     @ExceptionHandler(Exception.class)
     public Result<Void> handleException(Exception e) {
         log.error("系统异常: ", e);
-        return Result.error("系统繁忙，请稍后重试");
+        return Result.error(ErrorCode.SYSTEM_ERROR.getCode(), ErrorCode.SYSTEM_ERROR.getMessage());
     }
 }

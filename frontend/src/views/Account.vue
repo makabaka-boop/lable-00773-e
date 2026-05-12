@@ -144,8 +144,8 @@
             :page-sizes="[10, 20, 50, 100]"
             :total="total"
             layout="total, sizes, prev, pager, next, jumper"
-            @size-change="handleSizeChange"
-            @current-change="handlePageChange"
+            @size-change="handleSizeChangeWithLoad"
+            @current-change="handlePageChangeWithLoad"
           />
         </div>
       </div>
@@ -210,21 +210,21 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { accountApi } from '../api'
+import { usePagination } from '../composables/usePagination'
+import { useLoading } from '../composables/useLoading'
+import { getDirectionText } from '../utils/format'
 
-const accounts = ref([]) // 分页数据，用于表格显示
-const allAccounts = ref([]) // 全部数据，用于统计
+const accounts = ref([])
+const allAccounts = ref([])
 const dialogVisible = ref(false)
 const formRef = ref(null)
-const saving = ref(false)
-const tableLoading = ref(false)
-const refreshing = ref(false)
 const searchText = ref('')
 const form = ref({ code: '', name: '', parentCode: '', direction: 'DEBIT', isEnabled: true })
 
-// 分页相关
-const currentPage = ref(1)
-const pageSize = ref(10)
-const total = ref(0)
+const { currentPage, pageSize, total, handlePageChange, handleSizeChange } = usePagination(10)
+const { loading: tableLoading, withLoading: withTableLoading } = useLoading()
+const { loading: saving, withLoading: withSaving } = useLoading()
+const { loading: refreshing, withLoading: withRefreshing } = useLoading()
 
 const rules = {
   code: [{ required: true, message: '请输入科目编码', trigger: 'blur' }],
@@ -263,42 +263,31 @@ const filteredData = computed(() => {
 })
 
 const loadData = async () => {
-  tableLoading.value = true
-  try {
-    // 加载全部数据用于统计
+  await withTableLoading(async () => {
     const allRes = await accountApi.list()
-    allAccounts.value = allRes.data.data || []
+    allAccounts.value = allRes.data || []
     
-    // 加载分页数据用于表格显示
     const pageRes = await accountApi.page(currentPage.value, pageSize.value)
-    accounts.value = pageRes.data.data?.list || []
-    total.value = pageRes.data.data?.total || 0
-  } catch (e) {
-    ElMessage.error('加载数据失败')
-  } finally {
-    tableLoading.value = false
-  }
+    accounts.value = pageRes.data?.list || []
+    total.value = pageRes.data?.total || 0
+  })
 }
 
-const handlePageChange = (page) => {
-  currentPage.value = page
+const handlePageChangeWithLoad = (page) => {
+  handlePageChange(page)
   loadData()
 }
 
-const handleSizeChange = (size) => {
-  pageSize.value = size
-  currentPage.value = 1
+const handleSizeChangeWithLoad = (size) => {
+  handleSizeChange(size)
   loadData()
 }
 
 const handleRefresh = async () => {
-  refreshing.value = true
-  try {
+  await withRefreshing(async () => {
     await loadData()
     ElMessage.success('刷新成功')
-  } finally {
-    refreshing.value = false
-  }
+  })
 }
 
 const handleAdd = () => {
@@ -313,20 +302,13 @@ const handleEdit = (row) => {
 
 const handleSave = async () => {
   await formRef.value.validate()
-  saving.value = true
-  try {
+  await withSaving(async () => {
     form.value.level = form.value.parentCode ? 2 : 1
-    const res = await accountApi.save(form.value)
-    if (res.data.code === 200) {
-      ElMessage.success('保存成功')
-      dialogVisible.value = false
-      loadData()
-    } else {
-      ElMessage.error(res.data.message)
-    }
-  } finally {
-    saving.value = false
-  }
+    await accountApi.save(form.value)
+    ElMessage.success('保存成功')
+    dialogVisible.value = false
+    loadData()
+  })
 }
 
 const handleDelete = async (row) => {
@@ -335,13 +317,9 @@ const handleDelete = async (row) => {
     confirmButtonText: '确认删除',
     cancelButtonText: '取消'
   })
-  const res = await accountApi.delete(row.id)
-  if (res.data.code === 200) {
-    ElMessage.success('删除成功')
-    loadData()
-  } else {
-    ElMessage.error(res.data.message)
-  }
+  await accountApi.delete(row.id)
+  ElMessage.success('删除成功')
+  loadData()
 }
 
 onMounted(loadData)
